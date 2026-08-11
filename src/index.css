@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-paper text-ink transition-colors duration-300;
+  }
+  html.dark body {
+    @apply bg-night text-moon;
+  }
+  h1, h2, h3 {
+    @apply tracking-tightish;
+  }
+}
+
+@layer components {
+  .brief-card {
+    @apply bg-white rounded-xl2 shadow-card p-6 transition-colors duration-300 h-full border-l-[3px] border-l-transparent;
+    @apply hover:shadow-cardHover transition-shadow;
+  }
+  html.dark .brief-card {
+    @apply bg-night-soft shadow-cardDark hover:shadow-cardDarkHover;
+  }
+
+  .hairline {
+    @apply border border-line;
+  }
+  html.dark .hairline {
+    @apply border-night-border;
+  }
+
+  .label-caps {
+    @apply text-xs font-medium uppercase tracking-wide text-ink-faint;
+  }
+  html.dark .label-caps {
+    @apply text-moon-faint;
+  }
+
+  .section-accent {
+    @apply h-1 w-8 rounded-full mb-2;
+  }
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee { animation: marquee 45s linear infinite; }
+.animate-marquee-paused { animation-play-state: paused; }
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-rise-in {
+  animation: rise-in 0.5s ease-out both;
+}
