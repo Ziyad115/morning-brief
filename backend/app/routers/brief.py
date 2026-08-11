@@ -45,7 +45,7 @@ NEWS_SOURCE_TICKERS = [
 THEME_KEYWORDS = {
     "Rates & Fed": ["fed", "federal reserve", "rate", "interest rate", "powell", "fomc", "inflation", "cpi", "yield", "treasury"],
     "Earnings": ["earnings", "eps", "revenue", "guidance", "quarterly", "beat", "miss", "results"],
-    "Capital Markets": ["ipo", "initial public offering", "acquisition", "merger", "acquires", "bond issuance", "debt offering", "takeover", "buyout", "spac"],
+    "Capital Markets": ["ipo", "initial public offering", "acquisition", "merger", "acquires", "bond issuance", "debt offering", "takeover", "buyout", "spac", "aramco", "saudi", "tadawul"],
     "Commodities": ["oil", "gold", "crude", "opec", "commodity", "gas", "barrel"],
     "Geopolitics": ["trade", "tariff", "china", "sanction", "war", "geopolitic", "export", "conflict"],
     "Markets": ["stocks", "dow", "s&p", "nasdaq", "wall street", "market", "futures", "rally", "selloff"],
@@ -60,20 +60,73 @@ MIN_SCORE_BY_THEME = {
     "Capital Markets": 8,
 }
 
-# Listicle / content-farm headlines ("7 Stocks to Buy Now", "Best Stocks for
-# August") add noise without market-moving substance — filtered out before
-# they ever reach scoring.
-_LISTICLE_PATTERN = re.compile(
-    r"stocks? to buy|best stocks?|top picks|stocks? to own|^\s*\d+\s+stocks?\b",
+# Rates & Fed and Markets are the two "fast scan" cards. They're capped
+# together (rather than each getting its own independent MAX_PER_THEME
+# budget) so the combined macro-pulse portion of the brief stays scannable
+# in well under 90 seconds. MAX_PER_THEME still applies to each individually
+# on top of this, and every other theme's MAX_PER_THEME budget is unchanged.
+COMBINED_CAP_THEMES = {"Rates & Fed", "Markets"}
+COMBINED_CAP_LIMIT = 6
+
+# Low-value content that should never make the cut, regardless of score:
+# content-farm listicles ("7 Stocks to Buy Now"), promotional/sponsored
+# placements, and opinion/"should you buy" pieces that aren't news.
+_LOW_VALUE_PATTERN = re.compile(
+    r"stocks? to buy"
+    r"|best stocks?"
+    r"|top picks"
+    r"|stocks? to own"
+    r"|^\s*\d+\s+stocks?\b"
+    r"|\bsponsored\b"
+    r"|partner content"
+    r"|presented by"
+    r"|^\s*opinion\s*[:\-]"
+    r"|\bop-ed\b"
+    r"|should you buy"
+    r"|is it (?:a|the) buy"
+    r"|here'?s why"
+    r"|reasons to (?:buy|sell)",
     re.IGNORECASE,
 )
+
+# Headline keywords treated as high-signal macro topics — rates/inflation,
+# major indices, oil, USD, and mega-cap names — scored as a boost on top of
+# (not instead of) theme classification, so e.g. a Fed headline that also
+# moves the S&P doesn't just tie with any other "Rates & Fed" match.
+_MACRO_SIGNAL_KEYWORDS = [
+    "fed", "federal reserve", "fomc", "powell", "interest rate", "rate cut", "rate hike",
+    "inflation", "cpi", "treasury yield",
+    "s&p 500", "nasdaq", "dow jones", "russell 2000",
+    "oil", "crude", "opec", "brent",
+    "dollar", "usd", "dxy",
+    "apple", "nvidia", "microsoft", "amazon", "alphabet", "meta platforms", "tesla",
+]
+MACRO_SIGNAL_BOOST = 4
+
+# Recognizable financial press gets a credibility boost. Confirmed via
+# yfinance's underlying Yahoo "content platform" news schema:
+# item["content"]["provider"]["displayName"].
+_TOP_TIER_PUBLISHERS = ["reuters", "bloomberg", "wall street journal", "wsj", "financial times", "cnbc"]
+PUBLISHER_BOOST = 3
 
 RECENCY_WINDOW_HOURS = 18
 MAX_PER_THEME = 4
 
 
-def _is_listicle(title: str) -> bool:
-    return bool(_LISTICLE_PATTERN.search(title))
+def _is_low_value_content(title: str) -> bool:
+    return bool(_LOW_VALUE_PATTERN.search(title))
+
+
+def _has_macro_signal(title: str) -> bool:
+    title_lower = title.lower()
+    return any(kw in title_lower for kw in _MACRO_SIGNAL_KEYWORDS)
+
+
+def _is_top_tier_publisher(publisher: str) -> bool:
+    if not publisher:
+        return False
+    publisher_lower = publisher.lower()
+    return any(name in publisher_lower for name in _TOP_TIER_PUBLISHERS)
 
 
 def _classify(title: str):
@@ -98,10 +151,18 @@ def _fetch_raw_headlines():
         for item in items:
             content = item.get("content", item)
             title = content.get("title") or item.get("title")
-            if not title or _is_listicle(title):
+            if not title or _is_low_value_content(title):
                 continue
             link = content.get("canonicalUrl", {}).get("url") or item.get("link")
             pub_date_raw = content.get("pubDate") or item.get("providerPublishTime")
+
+            provider = content.get("provider") or content.get("publisher")
+            if isinstance(provider, dict):
+                publisher = provider.get("displayName") or provider.get("name") or ""
+            elif isinstance(provider, str):
+                publisher = provider
+            else:
+                publisher = ""
 
             pub_dt = None
             if isinstance(pub_date_raw, str):
@@ -113,7 +174,9 @@ def _fetch_raw_headlines():
                 pub_dt = datetime.fromtimestamp(pub_date_raw, tz=timezone.utc)
 
             if title not in headline_map:
-                headline_map[title] = {"title": title, "link": link, "pub_dt": pub_dt, "tickers": set()}
+                headline_map[title] = {"title": title, "link": link, "pub_dt": pub_dt, "tickers": set(), "publisher": publisher}
+            elif publisher and not headline_map[title]["publisher"]:
+                headline_map[title]["publisher"] = publisher
             headline_map[title]["tickers"].add(ticker)
 
     return list(headline_map.values())
@@ -134,6 +197,12 @@ def _score(headline):
 
     score += len(headline["tickers"]) * 3  # breadth across tracked tickers
 
+    if _has_macro_signal(headline["title"]):
+        score += MACRO_SIGNAL_BOOST  # rates/inflation/major indices/oil/USD/mega-cap
+
+    if _is_top_tier_publisher(headline.get("publisher", "")):
+        score += PUBLISHER_BOOST  # Reuters/Bloomberg/WSJ/FT/CNBC
+
     return score
 
 
@@ -142,13 +211,18 @@ def _build_summary(headlines):
     scored.sort(key=lambda pair: pair[1], reverse=True)
 
     grouped = defaultdict(list)
+    combined_cap_count = 0
     for h, s in scored:
         themes = _classify(h["title"])
         for theme in themes:
             if s < MIN_SCORE_BY_THEME.get(theme, 0):
                 continue
+            if theme in COMBINED_CAP_THEMES and combined_cap_count >= COMBINED_CAP_LIMIT:
+                continue
             if len(grouped[theme]) < MAX_PER_THEME:
                 grouped[theme].append({"title": h["title"], "link": h["link"]})
+                if theme in COMBINED_CAP_THEMES:
+                    combined_cap_count += 1
 
     theme_order = [
         "Rates & Fed", "Markets", "Earnings", "Capital Markets",
