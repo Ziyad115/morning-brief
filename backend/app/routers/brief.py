@@ -24,6 +24,7 @@ API key this version deliberately avoids needing.
 GET /api/brief returns:
   { "date": "...", "summary": [{ "theme": ..., "headlines": [...] }] }
 """
+import re
 import time
 from datetime import datetime, timezone
 from collections import defaultdict
@@ -36,18 +37,43 @@ router = APIRouter()
 CACHE_TTL_SECONDS = 900
 _cache = {"data": None, "fetched_at": 0}
 
-NEWS_SOURCE_TICKERS = ["^GSPC", "^NDX", "^TNX", "GC=F", "CL=F", "AAPL", "NVDA", "^VIX"]
+NEWS_SOURCE_TICKERS = [
+    "^GSPC", "^NDX", "^TNX", "GC=F", "CL=F", "AAPL", "NVDA", "^VIX",
+    "2222.SR", "^TASI.SR",
+]
 
 THEME_KEYWORDS = {
     "Rates & Fed": ["fed", "federal reserve", "rate", "interest rate", "powell", "fomc", "inflation", "cpi", "yield", "treasury"],
     "Earnings": ["earnings", "eps", "revenue", "guidance", "quarterly", "beat", "miss", "results"],
+    "Capital Markets": ["ipo", "initial public offering", "acquisition", "merger", "acquires", "bond issuance", "debt offering", "takeover", "buyout", "spac"],
     "Commodities": ["oil", "gold", "crude", "opec", "commodity", "gas", "barrel"],
     "Geopolitics": ["trade", "tariff", "china", "sanction", "war", "geopolitic", "export", "conflict"],
     "Markets": ["stocks", "dow", "s&p", "nasdaq", "wall street", "market", "futures", "rally", "selloff"],
+    "GCC / Middle East": ["aramco", "saudi", "tadawul", "gcc", "uae", "abu dhabi", "dubai", "qatar", "opec+", "riyadh"],
 }
+
+# Per-theme minimum score to appear in the summary. Themes not listed default
+# to 0 (any positive-scoring match qualifies, as before). Themes prone to
+# noisy/marginal keyword matches get a stricter bar so they stay empty and
+# hidden on quiet days instead of surfacing weak matches.
+MIN_SCORE_BY_THEME = {
+    "Capital Markets": 8,
+}
+
+# Listicle / content-farm headlines ("7 Stocks to Buy Now", "Best Stocks for
+# August") add noise without market-moving substance — filtered out before
+# they ever reach scoring.
+_LISTICLE_PATTERN = re.compile(
+    r"stocks? to buy|best stocks?|top picks|stocks? to own|^\s*\d+\s+stocks?\b",
+    re.IGNORECASE,
+)
 
 RECENCY_WINDOW_HOURS = 18
 MAX_PER_THEME = 4
+
+
+def _is_listicle(title: str) -> bool:
+    return bool(_LISTICLE_PATTERN.search(title))
 
 
 def _classify(title: str):
@@ -72,7 +98,7 @@ def _fetch_raw_headlines():
         for item in items:
             content = item.get("content", item)
             title = content.get("title") or item.get("title")
-            if not title:
+            if not title or _is_listicle(title):
                 continue
             link = content.get("canonicalUrl", {}).get("url") or item.get("link")
             pub_date_raw = content.get("pubDate") or item.get("providerPublishTime")
@@ -95,13 +121,16 @@ def _fetch_raw_headlines():
 
 def _score(headline):
     score = 0.0
+    has_breadth = len(headline["tickers"]) > 1
 
     if headline["pub_dt"]:
         age_hours = (datetime.now(timezone.utc) - headline["pub_dt"]).total_seconds() / 3600
         if age_hours <= RECENCY_WINDOW_HOURS:
             score += (RECENCY_WINDOW_HOURS - age_hours) / RECENCY_WINDOW_HOURS * 10
+    elif has_breadth:
+        score += 1  # unknown date, tightened from a flat +2 — only credited when breadth corroborates it
     else:
-        score += 2  # unknown date — small neutral credit, not zero
+        score -= 5  # unknown date AND no corroborating breadth — likely stale/low-quality, keep it out
 
     score += len(headline["tickers"]) * 3  # breadth across tracked tickers
 
@@ -116,10 +145,15 @@ def _build_summary(headlines):
     for h, s in scored:
         themes = _classify(h["title"])
         for theme in themes:
+            if s < MIN_SCORE_BY_THEME.get(theme, 0):
+                continue
             if len(grouped[theme]) < MAX_PER_THEME:
                 grouped[theme].append({"title": h["title"], "link": h["link"]})
 
-    theme_order = ["Rates & Fed", "Markets", "Earnings", "Commodities", "Geopolitics"]
+    theme_order = [
+        "Rates & Fed", "Markets", "Earnings", "Capital Markets",
+        "Commodities", "Geopolitics", "GCC / Middle East",
+    ]
     summary = []
     for theme in theme_order:
         if grouped[theme]:
