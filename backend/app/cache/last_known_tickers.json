@@ -1,0 +1,100 @@
+{
+  "SPX": {
+    "name": "S&P 500",
+    "price": 7748.26,
+    "changePct": -0.12,
+    "chartUrl": "https://www.tradingview.com/symbols/SPX/",
+    "fetched_at": 1786384332.604632
+  },
+  "NDX": {
+    "name": "Nasdaq 100",
+    "price": 29636.95,
+    "changePct": -0.29,
+    "chartUrl": "https://www.tradingview.com/symbols/NASDAQ-NDX/",
+    "fetched_at": 1786384333.092286
+  },
+  "DJI": {
+    "name": "Dow Jones",
+    "price": 53898.61,
+    "changePct": -0.26,
+    "chartUrl": "https://www.tradingview.com/symbols/DJ-DJI/",
+    "fetched_at": 1786384333.2789173
+  },
+  "BTC": {
+    "name": "Bitcoin",
+    "price": 63844.4,
+    "changePct": -1.54,
+    "chartUrl": "https://www.tradingview.com/symbols/BTCUSD/",
+    "fetched_at": 1786384333.8216581
+  },
+  "VIX": {
+    "name": "VIX",
+    "price": 15.26,
+    "changePct": 2.42,
+    "chartUrl": "https://www.tradingview.com/symbols/CBOE-VIX/",
+    "fetched_at": 1786384334.1603367
+  },
+  "GOLD": {
+    "name": "Gold",
+    "price": 4422.5,
+    "changePct": 1.88,
+    "chartUrl": "https://www.tradingview.com/symbols/TVC-GOLD/",
+    "fetched_at": 1786384334.6243062
+  },
+  "OIL": {
+    "name": "WTI Crude Oil",
+    "price": 81.77,
+    "changePct": 4.59,
+    "chartUrl": "https://www.tradingview.com/symbols/USOIL/",
+    "fetched_at": 1786384334.7972357
+  },
+  "RUT": {
+    "name": "Russell 2000",
+    "price": 3016.48,
+    "changePct": -0.59,
+    "chartUrl": "https://www.tradingview.com/symbols/CBOEFTSE-RUT/",
+    "fetched_at": 1786384335.1667721
+  },
+  "DXY": {
+    "name": "US Dollar Index",
+    "price": 99.78,
+    "changePct": 0.18,
+    "chartUrl": "https://www.tradingview.com/symbols/TVC-DXY/",
+    "fetched_at": 1786384335.6507852
+  },
+  "US10Y": {
+    "name": "US 10Y Yield",
+    "price": 4.7,
+    "changePct": 0.86,
+    "chartUrl": "https://www.tradingview.com/symbols/TVC-US10Y/",
+    "fetched_at": 1786384335.9621527
+  },
+  "ETH": {
+    "name": "Ethereum",
+    "price": 1872.51,
+    "changePct": -1.9,
+    "chartUrl": "https://www.tradingview.com/symbols/ETHUSD/",
+    "fetched_at": 1786384336.3338547
+  },
+  "AAPL": {
+    "name": "Apple",
+    "price": 306.23,
+    "changePct": -2.27,
+    "chartUrl": "https://www.tradingview.com/symbols/NASDAQ-AAPL/",
+    "fetched_at": 1786384336.6928775
+  },
+  "NVDA": {
+    "name": "Nvidia",
+    "price": 218.2,
+    "changePct": -2.57,
+    "chartUrl": "https://www.tradingview.com/symbols/NASDAQ-NVDA/",
+    "fetched_at": 1786384336.9434125
+  },
+  "ARAMCO": {
+    "name": "Saudi Aramco",
+    "price": 26.62,
+    "changePct": 0.08,
+    "chartUrl": "https://www.tradingview.com/symbols/TADAWUL-2222/",
+    "fetched_at": 1786384337.1517882
+  }
+}
