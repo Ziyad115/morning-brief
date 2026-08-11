@@ -17,8 +17,17 @@ licensing gap) so clicking a ticker on the frontend opens a full chart.
 Resilience: disk-persisted "last known good" cache. If a live fetch
 fails (e.g. Tadawul outside trading hours), falls back to the last
 successful value and marks it "stale": true rather than dropping it.
+
+NaN/Inf guard: yfinance occasionally returns NaN for a symbol's most
+recent Close (e.g. a forming, not-yet-settled intraday candle), or a
+zero prev_close can produce an Inf percent change. Neither NaN nor
+Inf is valid JSON, so FastAPI's JSONResponse raises a ValueError and
+the WHOLE endpoint fails for every ticker, not just the bad one. Every
+numeric value is now validated with math.isfinite() before being
+treated as usable, at both the live-fetch and cached-fallback stages.
 """
 import json
+import math
 import time
 from pathlib import Path
 
@@ -52,6 +61,10 @@ WATCHLIST = {
 }
 
 
+def _is_valid_number(x) -> bool:
+    return isinstance(x, (int, float)) and math.isfinite(x)
+
+
 def _load_last_known() -> dict:
     if LAST_KNOWN_PATH.exists():
         try:
@@ -62,8 +75,15 @@ def _load_last_known() -> dict:
 
 
 def _save_last_known(entries: dict):
+    # Extra safety net: never persist a NaN/Inf value to disk, even
+    # though the callers below should already prevent this upstream.
+    clean = {
+        symbol: entry
+        for symbol, entry in entries.items()
+        if _is_valid_number(entry.get("price")) and _is_valid_number(entry.get("changePct"))
+    }
     LAST_KNOWN_PATH.parent.mkdir(parents=True, exist_ok=True)
-    LAST_KNOWN_PATH.write_text(json.dumps(entries, indent=2))
+    LAST_KNOWN_PATH.write_text(json.dumps(clean, indent=2))
 
 
 def _fetch_quote(yf_ticker: str):
@@ -73,7 +93,15 @@ def _fetch_quote(yf_ticker: str):
             return None
         last_close = float(hist["Close"].iloc[-1])
         prev_close = float(hist["Close"].iloc[-2])
+
+        if not _is_valid_number(last_close) or not _is_valid_number(prev_close) or prev_close == 0:
+            return None
+
         change_pct = ((last_close - prev_close) / prev_close) * 100
+
+        if not _is_valid_number(change_pct):
+            return None
+
         return round(last_close, 2), round(change_pct, 2)
     except Exception:
         return None
@@ -106,14 +134,20 @@ def _fetch_all():
             }
         elif symbol in last_known:
             fallback = last_known[symbol]
-            results.append({
-                "symbol": symbol,
-                "name": fallback.get("name", name),
-                "price": fallback["price"],
-                "changePct": fallback["changePct"],
-                "stale": True,
-                "chartUrl": fallback.get("chartUrl", chart_url),
-            })
+            fallback_price = fallback.get("price")
+            fallback_change = fallback.get("changePct")
+
+            # Guard against a previously-corrupted cache entry too —
+            # don't resurrect a bad NaN value from disk either.
+            if _is_valid_number(fallback_price) and _is_valid_number(fallback_change):
+                results.append({
+                    "symbol": symbol,
+                    "name": fallback.get("name", name),
+                    "price": fallback_price,
+                    "changePct": fallback_change,
+                    "stale": True,
+                    "chartUrl": fallback.get("chartUrl", chart_url),
+                })
 
     _save_last_known(updated_last_known)
     return results
