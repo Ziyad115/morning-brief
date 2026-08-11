@@ -21,6 +21,6 @@ app.include_router(earnings.router, prefix="/api")
 app.include_router(overnight.router, prefix="/api")
 
 
-@app.get("/api/health")
+@app.api_route("/api/health", methods=["GET", "HEAD"])
 def health():
     return {"status": "ok"}
