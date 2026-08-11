@@ -20,6 +20,8 @@ from datetime import datetime, date
 
 from fastapi import APIRouter
 
+from .cache_utils import ttl_cache
+
 router = APIRouter()
 
 EVENTS_2026 = [
@@ -61,6 +63,7 @@ LOOKAHEAD_COUNT = 5
 
 
 @router.get("/calendar")
+@ttl_cache(seconds=3600)
 def get_calendar():
     today = date.today()
     upcoming = [

@@ -19,6 +19,8 @@ from datetime import datetime
 from fastapi import APIRouter
 import yfinance as yf
 
+from .cache_utils import ttl_cache
+
 router = APIRouter()
 
 EARNINGS_WATCHLIST = {
@@ -65,6 +67,7 @@ def _next_earnings_date(ticker: str):
 
 
 @router.get("/earnings")
+@ttl_cache(seconds=3600)
 def get_earnings():
     results = []
     for ticker, name in EARNINGS_WATCHLIST.items():

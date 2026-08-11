@@ -34,10 +34,9 @@ from pathlib import Path
 from fastapi import APIRouter
 import yfinance as yf
 
-router = APIRouter()
+from .cache_utils import ttl_cache
 
-CACHE_TTL_SECONDS = 60
-_cache = {"data": None, "fetched_at": 0}
+router = APIRouter()
 
 LAST_KNOWN_PATH = Path(__file__).resolve().parents[1] / "cache" / "last_known_tickers.json"
 
@@ -154,12 +153,6 @@ def _fetch_all():
 
 
 @router.get("/tickers")
+@ttl_cache(seconds=120)
 def get_tickers():
-    now = time.time()
-    if _cache["data"] is not None and (now - _cache["fetched_at"]) < CACHE_TTL_SECONDS:
-        return _cache["data"]
-
-    data = _fetch_all()
-    _cache["data"] = data
-    _cache["fetched_at"] = now
-    return data
+    return _fetch_all()
