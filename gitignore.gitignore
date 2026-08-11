@@ -1,0 +1,23 @@
+# Node / Vite frontend
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+
+# Python backend
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Cache files (per our earlier discussion — don't commit stale cached data)
+*.cache
+raw_cache*
