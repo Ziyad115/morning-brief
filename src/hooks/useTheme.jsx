@@ -3,19 +3,21 @@ import { useEffect, useState, useCallback } from "react";
 const STORAGE_KEY = "morning-brief-theme";
 
 /**
- * Theme state + persistence. Respects the user's saved preference
- * across visits (localStorage), falling back to system preference
- * (prefers-color-scheme) on first load if nothing's saved yet.
+ * Theme state + persistence.
  *
- * Applies/removes the `dark` class on <html>, which is what all the
- * `html.dark ...` CSS rules and Tailwind's `dark:` variants key off.
+ * Default is always "light" for first-time visitors — deliberately
+ * NOT following the OS/browser's prefers-color-scheme setting,
+ * since the brand's default identity is the light "morning" theme.
+ * Once a user actually toggles, their choice is saved to
+ * localStorage and respected on every future visit, overriding this
+ * default.
  */
 export function useTheme() {
   const [theme, setTheme] = useState(() => {
     if (typeof window === "undefined") return "light";
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === "light" || saved === "dark") return saved;
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    return "light";
   });
 
   useEffect(() => {
