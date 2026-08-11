@@ -2,19 +2,15 @@ import { useRef, useEffect, useCallback } from "react";
 import clsx from "clsx";
 
 /**
- * Unified ticker strip. Dark mode notes:
- * - Container swaps to night-soft background with a visible border.
- * - Category dot colors swap to more SATURATED variants in dark mode
- *   (brighter orange for BTC, brighter blue for macro, etc.) since
- *   colors visually recede against dark backgrounds — this is the
- *   "vibrant" request, applied where it's most visible.
+ * Unified ticker strip.
  *
- * IMPORTANT: dot color classes are written as full literal strings
- * (e.g. "bg-accent dark:bg-[#5EEAD4]") rather than built via string
- * interpolation, because Tailwind's compiler scans source code for
- * literal class names — a dynamically-constructed string like
- * `dark:${darkDot}` would NOT be detected and the CSS wouldn't
- * generate.
+ * Mobile autoscroll fix: touch interactions on a horizontally
+ * scrollable element frequently fire `touchcancel` instead of
+ * `touchend` once the browser's native scroll gesture takes over.
+ * Previously only `onTouchEnd` was wired to resume the animation,
+ * so a `touchcancel` left `isPausedRef` stuck at `true` forever —
+ * the strip would pause on first touch and never resume. Both
+ * events now call the same resume handler.
  */
 
 const CATEGORY_DOT = {
@@ -98,6 +94,12 @@ export default function PriceStrip({ tickers = [] }) {
   const handleMouseEnter = () => pause();
   const handleMouseLeave = () => {
     if (!isDraggingRef.current) scheduleResume();
+  };
+
+  // Fires on touchend AND touchcancel — see note above.
+  const handleTouchRelease = () => {
+    isDraggingRef.current = false;
+    scheduleResume();
   };
 
   const handlePointerDown = (e) => {
@@ -189,7 +191,8 @@ export default function PriceStrip({ tickers = [] }) {
           onMouseMove={handlePointerMove}
           onMouseUp={handlePointerUp}
           onTouchStart={handleMouseEnter}
-          onTouchEnd={handleMouseLeave}
+          onTouchEnd={handleTouchRelease}
+          onTouchCancel={handleTouchRelease}
           className={clsx(
             "flex overflow-x-auto cursor-grab active:cursor-grabbing",
             "[&::-webkit-scrollbar]:hidden"
