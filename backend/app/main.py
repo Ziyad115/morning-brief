@@ -6,7 +6,10 @@ app = FastAPI(title="Morning Brief API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+    "http://localhost:5173",
+    "https://morning-brief-8egr.onrender.com",
+],
     allow_methods=["*"],
     allow_headers=["*"],
 )
