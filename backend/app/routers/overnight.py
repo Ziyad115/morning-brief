@@ -7,14 +7,12 @@ information a US-only ticker feed misses entirely.
 GET /api/overnight returns:
   [{ "symbol": "N225", "name": "Nikkei 225", "price": ..., "changePct": ... }]
 """
-import time
 from fastapi import APIRouter
 import yfinance as yf
 
-router = APIRouter()
+from .cache_utils import ttl_cache
 
-CACHE_TTL_SECONDS = 120
-_cache = {"data": None, "fetched_at": 0}
+router = APIRouter()
 
 WATCHLIST = {
     "^N225": ("N225", "Nikkei 225 (Japan)"),
@@ -49,12 +47,6 @@ def _fetch_all():
 
 
 @router.get("/overnight")
+@ttl_cache(seconds=600)
 def get_overnight():
-    now = time.time()
-    if _cache["data"] is not None and (now - _cache["fetched_at"]) < CACHE_TTL_SECONDS:
-        return _cache["data"]
-
-    data = _fetch_all()
-    _cache["data"] = data
-    _cache["fetched_at"] = now
-    return data
+    return _fetch_all()
