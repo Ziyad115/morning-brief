@@ -27,12 +27,12 @@ export default function ThemeToggle({ theme, onToggle }) {
       type="button"
       onClick={onToggle}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className="relative w-12 h-7 rounded-full bg-white hairline shadow-card hover:shadow-cardHover transition-shadow flex items-center px-1 shrink-0
+      className="relative w-12 h-7 rounded-full bg-white hairline shadow-card hover:shadow-cardHover hover:-translate-y-px active:scale-95 transition-transform duration-150 ease-[var(--ease-out)] flex items-center px-1 shrink-0
                  dark:bg-night-soft"
     >
       <span
         className="absolute top-1 left-1 w-5 h-5 rounded-full bg-paper-soft dark:bg-night flex items-center justify-center
-                   transition-transform duration-300 text-ink-muted dark:text-dawn-amber"
+                   transition-transform duration-200 ease-[var(--ease-in-out)] text-ink-muted dark:text-dawn-amber"
         style={{ transform: isDark ? "translateX(20px)" : "translateX(0)" }}
       >
         {isDark ? <MoonIcon /> : <SunIcon />}
