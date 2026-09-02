@@ -144,13 +144,13 @@ export default function PriceStrip({ tickers = [] }) {
         }
         className={clsx(
           "group flex items-center gap-2 shrink-0 select-none px-4 sm:px-5 py-3 cursor-pointer",
-          "hover:bg-accent-soft dark:hover:bg-night-border transition-colors duration-150",
+          "[@media(hover:hover)_and_(pointer:fine)]:hover:bg-accent-soft dark:[@media(hover:hover)_and_(pointer:fine)]:hover:bg-night-border transition-colors duration-150",
           !isLast && "border-r border-line dark:border-night-border"
         )}
       >
         <span
           className={clsx(
-            "w-1.5 h-1.5 rounded-full shrink-0 transition-transform group-hover:scale-125",
+            "w-1.5 h-1.5 rounded-full shrink-0 transition-transform [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-125",
             dotClasses
           )}
           aria-hidden
@@ -176,7 +176,7 @@ export default function PriceStrip({ tickers = [] }) {
         type="button"
         onClick={() => scrollByButton(-1)}
         aria-label="Scroll left"
-        className="hidden sm:flex shrink-0 z-10 w-7 h-7 mr-2 items-center justify-center rounded-full bg-white dark:bg-night-soft hairline shadow-card hover:shadow-cardHover active:scale-95 transition-all text-ink-muted dark:text-moon-muted hover:text-ink dark:hover:text-moon"
+        className="hidden sm:flex shrink-0 z-10 w-7 h-7 mr-2 items-center justify-center rounded-full bg-white dark:bg-night-soft hairline shadow-card hover:shadow-cardHover hover:-translate-y-px active:scale-95 transition-[transform,color] duration-150 ease-[var(--ease-out)] text-ink-muted dark:text-moon-muted hover:text-ink dark:hover:text-moon"
       >
         ‹
       </button>
@@ -208,7 +208,7 @@ export default function PriceStrip({ tickers = [] }) {
         type="button"
         onClick={() => scrollByButton(1)}
         aria-label="Scroll right"
-        className="hidden sm:flex shrink-0 z-10 w-7 h-7 ml-2 items-center justify-center rounded-full bg-white dark:bg-night-soft hairline shadow-card hover:shadow-cardHover active:scale-95 transition-all text-ink-muted dark:text-moon-muted hover:text-ink dark:hover:text-moon"
+        className="hidden sm:flex shrink-0 z-10 w-7 h-7 ml-2 items-center justify-center rounded-full bg-white dark:bg-night-soft hairline shadow-card hover:shadow-cardHover hover:-translate-y-px active:scale-95 transition-[transform,color] duration-150 ease-[var(--ease-out)] text-ink-muted dark:text-moon-muted hover:text-ink dark:hover:text-moon"
       >
         ›
       </button>

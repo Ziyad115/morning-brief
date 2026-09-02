@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
 @layer base {
   body {
     @apply bg-paper text-ink transition-colors duration-300;
@@ -16,11 +21,18 @@
 
 @layer components {
   .brief-card {
-    @apply bg-white rounded-xl2 shadow-card p-6 transition-colors duration-300 h-full border-l-[3px] border-l-transparent;
-    @apply hover:shadow-cardHover transition-shadow;
+    @apply bg-white rounded-xl2 shadow-card p-6 h-full border-l-[3px] border-l-transparent;
+    transition: background-color 300ms, color 300ms, border-color 300ms,
+      transform 150ms var(--ease-out);
+  }
+  .brief-card:hover {
+    @apply shadow-cardHover -translate-y-px;
   }
   html.dark .brief-card {
-    @apply bg-night-soft shadow-cardDark hover:shadow-cardDarkHover;
+    @apply bg-night-soft shadow-cardDark;
+  }
+  html.dark .brief-card:hover {
+    @apply shadow-cardDarkHover -translate-y-px;
   }
 
   .hairline {
@@ -41,13 +53,6 @@
     @apply h-1 w-8 rounded-full mb-2;
   }
 }
-
-@keyframes marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-.animate-marquee { animation: marquee 45s linear infinite; }
-.animate-marquee-paused { animation-play-state: paused; }
 
 @keyframes rise-in {
   from {
